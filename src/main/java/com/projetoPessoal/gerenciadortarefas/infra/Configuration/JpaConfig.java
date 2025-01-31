@@ -1,2 +1,9 @@
-package com.projetoPessoal.gerenciadortarefas.infra.Configuration;public class JpaConfig {
+package com.projetoPessoal.gerenciadortarefas.infra.Configuration;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+
+@Configuration
+@EnableJpaAuditing
+public class JpaConfig {
 }

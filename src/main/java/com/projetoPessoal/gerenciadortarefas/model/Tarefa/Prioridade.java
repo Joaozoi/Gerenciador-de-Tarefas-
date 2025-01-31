@@ -1,2 +1,9 @@
-package com.projetoPessoal.gerenciadortarefas.model.Tarefa;public enum Prioridade {
+package com.projetoPessoal.gerenciadortarefas.model.Tarefa;
+
+public enum Prioridade {
+    BAIXA,
+    MEDIA,
+    ALTA,
+    URGENTE;
+
 }

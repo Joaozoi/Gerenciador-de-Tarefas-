@@ -1,4 +1,4 @@
-package com.meuprojeto.gerenciadortarefas;
+package com.projetoPessoal.gerenciadortarefas;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

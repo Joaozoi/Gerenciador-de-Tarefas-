@@ -1,15 +1,19 @@
-package com.projetoPessoal.gerenciadortarefas.model.Tarefa.Service;
+package com.projetoPessoal.gerenciadortarefas.model.Service;
 
 
 import com.projetoPessoal.gerenciadortarefas.infra.Exception.ExceptionPersonalizada;
-import com.projetoPessoal.gerenciadortarefas.model.Tarefa.Repository.TarefaRepository;
+import com.projetoPessoal.gerenciadortarefas.model.Repository.TarefaRepository;
+import com.projetoPessoal.gerenciadortarefas.model.Repository.UsuarioRepository;
+import com.projetoPessoal.gerenciadortarefas.model.Tarefa.DadosAtualizaTarefa;
+import com.projetoPessoal.gerenciadortarefas.model.Tarefa.DadosListagemTarefa;
 import com.projetoPessoal.gerenciadortarefas.model.Tarefa.Tarefa;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDateTime;
+
 
 @Service
 public class TarefaService {
@@ -17,38 +21,57 @@ public class TarefaService {
     @Autowired
     private TarefaRepository repository;
 
-    public Tarefa criarTarefa(Tarefa tarefa){
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private PrioridadeTarefaService prioridadeTarefaService;
+
+    public Tarefa criarTarefa(Tarefa tarefa, Long usuarioId) throws ExceptionPersonalizada {
+        if (usuarioId == null){
+            throw new ExceptionPersonalizada("Usuário não informado para a tarefa");
+        }
+        var usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ExceptionPersonalizada("Usuário não encontrado"));
+
+            if(tarefa.getPrazo().isBefore(LocalDateTime.now()) && tarefa.getPrazo() == null){
+                throw new ExceptionPersonalizada("Não é possivel criar uma tarefa com prazo ja vencido!");
+            }
+
+            prioridadeTarefaService.definirPrioridade(tarefa);
+        tarefa.setUsuario(usuario);
         return repository.save(tarefa);
     }
 
-    public List<Tarefa> listarTarefa(){
-        return repository.findAll();
-    }
-
-    public Optional<Tarefa> buscarPorId(Long id) {
-        return repository.findById(id);
-    }
-
-    public Tarefa atualizarTarefa(Long id, Tarefa tarefaAtualizada) throws ExceptionPersonalizada {
-       Tarefa tarefaExistente = repository.findById(id)
-               .orElseThrow(()-> new ExceptionPersonalizada( "Tarefa não encontrada"));
-
-        tarefaExistente.setTitulo(tarefaAtualizada.getTitulo());
-        tarefaExistente.setDescricao(tarefaAtualizada.getDescricao());
-        tarefaExistente.setStatus(tarefaAtualizada.getStatus());
-        tarefaExistente.setPrazo(tarefaAtualizada.getPrazo());
-        tarefaExistente.setPrioridade(tarefaAtualizada.getPrioridade());
-        tarefaExistente.setConcluidoPor(tarefaAtualizada.getConcluidoPor());
-
-        return  repository.save(tarefaExistente);
-
+    public Page<DadosListagemTarefa> listarTarefasPorUsuario(Long usuarioId, Pageable paginacao)throws ExceptionPersonalizada {
+        var usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ExceptionPersonalizada("Usuário não encontrado"));
+        return repository.findByUsuarioIdAndAtivoTrue(usuarioId, paginacao)
+                .map(DadosListagemTarefa::new);
     }
 
 
-    public void deletarTarefa(Long id) {
-        var tarefa = repository.getReferenceById(id);
+    public Tarefa atualizarTarefa(Long id, DadosAtualizaTarefa dados) throws ExceptionPersonalizada {
+        var tarefa = repository.findById(id)
+                .orElseThrow(() -> new ExceptionPersonalizada("Tarefa não encontrada"));
+
+
+
+        tarefa.atualizarInformacoes(dados);
+
+        tarefa.verificarConclusaoAutomatico();
+        prioridadeTarefaService.definirPrioridade(tarefa);
+        return repository.save(tarefa);
+    }
+
+
+
+
+    public void deletarTarefa(Long id) throws ExceptionPersonalizada {
+        var tarefa = repository.findById(id)
+                .orElseThrow(() -> new ExceptionPersonalizada("Tarefa não encontrada"));
         tarefa.inativar();
-
+        repository.save(tarefa);
     }
 
 
